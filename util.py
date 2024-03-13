@@ -39,28 +39,33 @@ def defender_in_front(play_direc, player_loc):
     else:
         return (player_loc.x > player_loc.bc_x).astype(int)
     
-def calc_rel_vec_mag(player_loc):
+def calc_rel_angle(player_loc):
     '''
-    Calculate difference between player movement angle and angle to ball carrier
+    Calculate difference between player movement angle and ball carrier movement angle
+    Input: dataframe of defender locations/speeds
+    Output: Series of defender angles to ball carrier
     '''
+    # Calculate relative angle
     theta_temp = player_loc.dir - player_loc.bc_dir
-    theta_rel = (
-            np.where(
-                theta_temp.between(-180, 180), np.abs(theta_temp), 360 - np.abs(theta_temp)
-            )
-            / 180)
-            
+    return np.where(theta_temp.between(-180, 180), np.abs(theta_temp), 360 - np.abs(theta_temp))
+    
+def calc_rel_speed(player_loc):
+    '''
+    Calculate relative difference between ball carrier and defender speeds
+    Input: dataframe of defender locations/speeds
+    Output: Series of defender speeds (relative to ball carrier)
+    '''
+    # Law of cosines
     return np.sqrt(
             np.power(player_loc.bc_s, 2)
             + np.power(player_loc.s, 2)
-            - 2 * player_loc.bc_s * player_loc.s * np.cos(np.pi * theta_rel)
-        )
-    
+            - 2 * player_loc.bc_s * player_loc.s * np.cos(np.pi / 180 * player_loc.rel_angle))
+
 def sideline_dist(player_loc):
     '''
     Calculate ball carrier minimum distance (absolute) to sideline (0, 53.3)
     Input: Dataframe of defenseive player tracking data
-    Output: Series of constanct min distance to sideline values
+    Output: Series of constant min distance to sideline values
     '''
     bc_y = player_loc.bc_y.unique()
 
@@ -69,6 +74,8 @@ def sideline_dist(player_loc):
 def endzone_dist(play_direc, player_loc):
     '''
     Calculate ball carrier distance to endzone
+    Input: Dataframe of defenseive player tracking data
+    Output: Series of constant min distance to endzone values
     '''
     if play_direc == 'left' and player_loc.bc_x.unique()[0] <= 10:
         return player_loc.bc_x * 0
